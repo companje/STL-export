@@ -7,9 +7,6 @@
 class App : public ofBaseApp {
 public:
   
-  ofxCvColorImage rgb;
-  ofxCvGrayscaleImage grey;
-  ofxCvContourFinder contours;
   ofxMesh mesh;
   ofPath path;
   ofImage bg;
@@ -29,7 +26,6 @@ public:
   
   void clear() {
     path.clear();
-//    bg = ofImage();
     bg.clear();
   }
   
@@ -51,7 +47,6 @@ public:
     bg.setAnchorPercent(.5,.5);
     if (bg.width<600 && bg.height<600) return;
     
-    
     bool landscape = bg.width > bg.height;
     float ratio = landscape ? float(bg.height) / bg.width : float(bg.width) / bg.height;
     
@@ -63,33 +58,38 @@ public:
 
   }
   
-  void trace() {
-    ofImage img;
-    //img.grabScreen(0,0,ofGetWidth(),ofGetHeight());
-    img.grabScreen(0,0,600,600);
+  ofPath getPathFromImage(ofImage &img) {
+    ofxCvColorImage rgb;
+    ofxCvGrayscaleImage grey;
+    ofxCvContourFinder contours;
+    ofPath path;
+    path.setFilled(true);
     rgb.allocate(img.width,img.height);
     rgb.setFromPixels(img.getPixelsRef());
     grey = rgb;
     grey.brightnessContrast(0, .5);
-    //        grey.threshold(5);
+    //grey.threshold(5);
     grey.mirror(true,false);
     contours.findContours(grey, 10, img.width*img.height/2, 200, true);
-    
-    mesh.clear();
-    float thickness=40;
-    ofVec3f zOffset(0,0,thickness);
-    
-    ofPath path;
-    path.setFilled(true);
-    
     for (int i=0; i<contours.blobs.size(); i++) {
       vector<ofPoint> &pts = contours.blobs[i].pts;
       path.moveTo(pts[0]);
       for (int j=0; j<pts.size(); j++) {
-          path.lineTo(pts[j]);
+        path.lineTo(pts[j]);
       }
     }
+    return path;
+  }
+  
+  void trace() {
+    ofImage img;
+    img.grabScreen(0,0,600,600);
+    ofPath path = getPathFromImage(img);
     
+    mesh.clear();
+    float thickness=40;
+    ofVec3f zOffset(0,0,thickness);
+
     mesh.clear();
     vector<ofPolyline> outline = path.getOutline();
     ofxMesh *tess = (ofxMesh*) &path.getTessellation();
